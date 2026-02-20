@@ -21,7 +21,6 @@ const run = async () => {
 
     //Import all routes
     app.use("/sport", sportRoute);
-    app.use("/sport", sportRoute);
     app.use("/user", userRoute);
     app.use("/match", matchRoute);
     app.use("/bet", betRoute);
