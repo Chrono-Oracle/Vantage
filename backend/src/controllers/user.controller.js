@@ -18,28 +18,30 @@ const create = async (req, res) => {
 };
 
 const findMany = async (req, res) => {
-  const result = await userService.findBy(req.body);
+  const result = await userService.find({});
   if (result.error) {
     return res.status(400).json({
       message: result.error,
     });
   }
 
-  return res.status(201).json({
+  return res.status(200).json({
     message: "Users fetched successfully!!!",
+    data: result.data,
   });
 };
 
 const find = async (req, res) => {
-  const result = await userService.findBy(req.params.id);
+  const result = await userService.findById(req.params.id);
   if (result.error) {
     return res.status(400).json({
       message: result.error,
     });
   }
 
-  return res.status(201).json({
+  return res.status(200).json({
     message: "User fetched successfully!!!",
+    data: result.data,
   });
 };
 
@@ -69,10 +71,40 @@ const remove = async (req, res) => {
   });
 };
 
+const login = async (req, res) => {
+  const result = await userService.login(req.body);
+  if (result.error) {
+    return res.status(400).json({
+      message: result.error,
+    });
+  }
+
+  return res.status(200).json({
+    message: "User logged in successfully!!!",
+    data: result,
+  });
+};
+
+const profile = async (req, res) => {
+  const result = await userService.findById(req.user.id);
+  if (result.error) {
+    return res.status(400).json({
+      message: result.error,
+    });
+  }
+
+  return res.status(200).json({
+    message: "User profile fetched successfully!!!",
+    data: result,
+  });
+};
+
 module.exports = {
   create,
   findMany,
   find,
   update,
   remove,
+  login,
+  profile,
 };

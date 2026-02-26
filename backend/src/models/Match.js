@@ -31,7 +31,7 @@ const matchSchema = new Schema ({
         required: true,
         default: 1
     },
-    oddA: {
+    oddB: {
         type: Number,
         required: true,
         default: 1

@@ -44,10 +44,15 @@ export default function LoginPage() {
 
         const token = response.data.token;
         const role = response.data.role;
-        localStorage.setItem('user', {token, role});
+        localStorage.setItem('user', JSON.stringify({token, role}));
+        alert(response.message || "Login successful!");
 
         setLoginData(DEFAULT_DATA);
-        router.push("/dashboard");
+        if (role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (error) {
       const errorMessage =

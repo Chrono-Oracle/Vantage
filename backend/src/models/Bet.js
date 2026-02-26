@@ -12,12 +12,12 @@ const betSchema = new Schema ({
         required: true
     },
     scoreA: {
-        type: String,
+        type: Number,
         required: true,
         default: 0
     },
     scoreB: {
-        type: String,
+        type: Number,
         required: true,
         default: 0
     },
