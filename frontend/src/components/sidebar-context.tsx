@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 
 interface SidebarContextType {
   isExpanded: boolean;
@@ -15,8 +21,19 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   const toggleSidebar = () => setIsExpanded((prev) => !prev);
 
+  // Lock scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isExpanded && window.innerWidth < 768) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [isExpanded]);
+
   return (
-    <SidebarContext.Provider value={{ isExpanded, setIsExpanded, toggleSidebar }}>
+    <SidebarContext.Provider
+      value={{ isExpanded, setIsExpanded, toggleSidebar }}
+    >
       {children}
     </SidebarContext.Provider>
   );
