@@ -34,12 +34,22 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Toggle Trigger - Only visible on Mobile */}
-      <button
+      <motion.button
+        initial={false}
+        animate={{
+          // We use the same logic as your sidebar width to ensure they stay glued together
+          left: isExpanded ? 220 : 48, // 220px (left-55) vs 48px (left-12)
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
         onClick={toggleSidebar}
-        className="fixed top-5 left-5 z-60 md:hidden p-2 bg-white dark:bg-slate-800 rounded-full shadow-md border border-gray-200"
+        className="fixed top-3 z-80 md:hidden p-2 bg-background dark:bg-slate-800 rounded-full"
       >
         {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-      </button>
+      </motion.button>
       <motion.aside
         initial={false}
         animate={{
@@ -58,7 +68,7 @@ export function Sidebar() {
                 ? "0%"
                 : "20%",
         }}
-        className={`fixed left-0 z-50 pt-2 md:rounded-2xl shadow-lg flex flex-col overflow-hidden overflow-y-scroll no-scrollbar bg-white dark:bg-slate-900 ${isExpanded ? "h-screen" : "h-screen md:h-1/2"}`}
+        className={`fixed left-0 z-70 pt-2 md:rounded-md shadow-lg flex flex-col overflow-hidden overflow-y-scroll no-scrollbar bg-background dark:bg-slate-900 ${isExpanded ? "h-screen" : "h-screen md:h-1/2"}`}
       >
         <div className="relative">
           {/* Toggle Button */}
@@ -81,14 +91,13 @@ export function Sidebar() {
 
           {/* Top Header */}
           <div className="mb-5 grid justify-items-center">
+            {!isExpanded && (
+              <div className="mt-12 w-10 h-10 bg-amber-600 rounded-full md:hidden" />
+            )}
+
             <AnimatePresence>
               {isExpanded && (
-                <motion.div
-                  className="grid justify-items-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
+                <motion.div className="grid justify-items-center">
                   <div className="w-15 h-15 mb-2 bg-amber-600 rounded-full" />
                   <div className="grid justify-items-center ">
                     <h3 className="text-[.9rem] font-semibold">Daniel Green</h3>
@@ -127,9 +136,9 @@ export function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-3 space-y-2">
-            <p className="block md:hidden px-4 text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">
-              {isExpanded ? "Menu" : "•"}
+          <nav className="flex-1 px-1 space-y-2 mx-2 mt-1 py-5 md:mt-0 md:py-0 border-y-2 border-gray-100 md:border-none">
+            <p className="block md:hidden px-2 text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">
+              {isExpanded ? "Menu" : "Menu"}
             </p>
             {navItems.map((item) => (
               <Link

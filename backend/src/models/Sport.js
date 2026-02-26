@@ -12,6 +12,6 @@ const sportSchema = new Schema ({
 
 }, { timestamps: true });
 
-const Sport = model( 'sports', sportSchema);
+const Sport = model( "Sport", sportSchema);
 
 module.exports = Sport;

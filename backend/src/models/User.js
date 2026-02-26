@@ -19,7 +19,7 @@ const userSchema = new Schema ({
         min: 8,
         max: 20,
         trim: true,
-        unique: type,
+        unique: true,
         required: true
     },
     dob: {
@@ -32,6 +32,7 @@ const userSchema = new Schema ({
         max: 50,
         trim: true
     },
+    
     role: {
         type: String,
         enum: [ 'admin', 'user' ],
@@ -45,6 +46,6 @@ const userSchema = new Schema ({
 
 }, { timestamps: true });
 
-const User = model( 'users', User);
+const User = model( "User", userSchema);
 
 module.exports = User;

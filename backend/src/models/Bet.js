@@ -3,11 +3,12 @@ const { Schema, model } = require('mongoose');
 const betSchema = new Schema ({
     user: {
         type: Schema.Types.ObjectId,
-        ref
+        ref: 'Users',
+        required: true
     },
     match: {
         type: Schema.Types.ObjectId,
-        ref: 'matches',
+        ref: 'Matches',
         required: true
     },
     scoreA: {
@@ -29,6 +30,6 @@ const betSchema = new Schema ({
 
 }, { timestamps: true });
 
-const Bet = model( 'bets', betSchema);
+const Bet = model( "Bet", betSchema);
 
 module.exports = Bet;

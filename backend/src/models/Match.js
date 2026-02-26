@@ -45,6 +45,6 @@ const matchSchema = new Schema ({
 
 }, { timestamps: true });
 
-const Match = model( 'matches', sportSchema);
+const Match = model( 'matches', matchSchema);
 
 module.exports = Match;
