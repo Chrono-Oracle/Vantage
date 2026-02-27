@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = localStorage.getItem("user");
             if (data) {
                 const { token } = JSON.parse(data);
-                fetch('/me/verify-auth', {
+                fetch('http://localhost:5000/user/verify-auth', {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

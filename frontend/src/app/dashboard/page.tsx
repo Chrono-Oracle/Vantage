@@ -17,7 +17,10 @@ export default function DashboardPage() {
     if (!isLogin) {
       router.push("/login");
     }
-  }, [isLogin, router]);
+    if (!isAuthLoading && !isLogin) {
+      router.push("/login");
+    }
+  }, [isLogin, isAuthLoading, router]);
 
   return (
     <>

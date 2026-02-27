@@ -9,6 +9,8 @@ const adminMiddleware = require('../utils/middlewares/admin.middleware')
 router.post('/create', userValidation, userController.create);
 router.post('/login', userController.login);
 
+router.post('/verify-auth', authMiddleware, userController.profile);
+
 router.get('/profile', authMiddleware, userController.profile);
 
 //Admin Only Routes
