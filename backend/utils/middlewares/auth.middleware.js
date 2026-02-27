@@ -1,4 +1,4 @@
-const { verifyToken } = require("../lib/jwt.lib");
+const { verifyToken, JWT_SECRET } = require("../lib/jwt.lib");
 
 /**
  * Authentication middleware
@@ -19,9 +19,9 @@ const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
 
     // Verify token
-    const result = verifyToken(token);
+    const decoded = verifyToken(token, JWT_SECRET);
 
-    if (result.error) {
+    if (decoded.error) {
       return res.status(401).json({
         error: true,
         message: "Invalid or expired token.",

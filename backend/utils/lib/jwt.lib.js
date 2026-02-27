@@ -5,7 +5,7 @@ const JWT_SECRET =
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 const generateToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET);
 };
 
 const verifyToken = (token) => {
@@ -26,4 +26,5 @@ module.exports = {
   generateToken,
   verifyToken,
   JWT_SECRET,
+  JWT_EXPIRES_IN
 };
