@@ -4,6 +4,7 @@ import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
 import { Sidebar } from "@/components/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
+import { AuthProvider } from "@/utils/contexts/AuthContext";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isExpanded, toggleSidebar } = useSidebar();
@@ -43,8 +44,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <DashboardContent>{children}</DashboardContent>
-    </SidebarProvider>
+    <AuthProvider>
+      <SidebarProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </SidebarProvider>
+    </AuthProvider>
   );
 }

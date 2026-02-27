@@ -11,6 +11,8 @@ class UserService extends BaseService {
 
   async login(data) {
     try {
+
+      console.log('Data: ', data);
       if (!data.email || !data.password) {
         return {
           error: true,
@@ -19,6 +21,8 @@ class UserService extends BaseService {
       }
 
       const user = await this.model.findOne({ email: data.email });
+      console.log('User: ', user);
+
       if (!user) {
         return {
           error: true,
@@ -26,7 +30,9 @@ class UserService extends BaseService {
         };
       }
 
-      const isPasswordValid = await comparePassword(data.password, user.password);
+      // const isPasswordValid = await comparePassword(data.password, user.password);
+      const isPasswordValid = data.password === user.password;
+
       if (!isPasswordValid) {
         return {
           error: true,
@@ -44,6 +50,9 @@ class UserService extends BaseService {
         message: "Login successful",
       };
     } catch (error) {
+
+      console.log('error: ', error);
+
       return {
         error: true,
         message: error.message || "Login failed, try again later",
