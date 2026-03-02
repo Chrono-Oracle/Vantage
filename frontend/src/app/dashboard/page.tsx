@@ -52,7 +52,7 @@ export default function DashboardPage() {
         {/* Left column */}
         <div className="relative w-full">
           {/* Hero */}
-          <div className="relative bg-blue-500 w-full h-70 rounded-2xl">
+          <div className="relative  bg-blue-500 w-full h-70 rounded-2xl">
             <HeroCarousel />
 
             {/* Main hero comps */}
@@ -66,25 +66,77 @@ export default function DashboardPage() {
                   <span>{match.time}</span>
                 </div>
               </div>
-              <div className="px-5 absolute bottom-0 w-full h-35 z-10">
-                {/* team logos */}
-                <div className="flex justify-between">
-                  <div className="w-9 h-9 bg-amber-400 rounded-full" />
-                  <div className="w-9 h-9 bg-amber-400 rounded-full" />
-                </div>
+              <div className="px-5 absolute bottom-4 left-0 right-0 z-10">
+                <div className="flex flex-col gap-4 w-full max-w-full">
+                  {/* Team Info Section */}
+                  <div className="grid w-full">
+                    <div className="flex justify-between">
+                      <div className="flex flex-col gap-y-1 items-start">
+                        <div className="w-10 h-10 bg-amber-400 rounded-full shadow-lg" />
+                        <span className="text-white font-bold text-sm uppercase">
+                          {match.homeAbbr}
+                        </span>
+                        <span className="text-white/80 text-xs hidden sm:block">
+                          {match.teamHome}
+                        </span>
+                      </div>
 
-                {/* team name abbr */}
-                <div className="flex justify-between text-white">
-                  <span className="">{match.homeAbbr}</span>
-                  <span className="">{match.awayAbbr}</span>
-                </div>
-                {/* team fullname */}
-                <div className="flex justify-between">
-                  <span className="text-white">{match.teamHome}</span>
-                  <span className="text-white">{match.teamAway}</span>
+                      <div className="flex flex-col gap-y-1 items-end">
+                        <div className="w-10 h-10 bg-amber-400 rounded-full mb-1 shadow-lg" />
+                        <span className="text-white font-bold text-sm uppercase">
+                          {match.awayAbbr}
+                        </span>
+                        <span className="text-white/80 text-xs hidden sm:block">
+                          {match.teamAway}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Probability Bar */}
+                  <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-white/10 backdrop-blur-md">
+                    <div
+                      className="probability-bar-segment bg-green-500"
+                      style={
+                        {
+                          "--segment-width": match.odds.home,
+                        } as React.CSSProperties
+                      }
+                      title={`Home: ${match.odds.home}`}
+                    />
+                    <div
+                      className="probability-bar-segment bg-gray-400"
+                      style={
+                        {
+                          "--segment-width": match.odds.draw,
+                        } as React.CSSProperties
+                      }
+                      title={`Draw: ${match.odds.draw}`}
+                    />
+                    <div
+                      className="probability-bar-segment bg-red-500"
+                      style={
+                        {
+                          "--segment-width": match.odds.away,
+                        } as React.CSSProperties
+                      }
+                      title={`Away: ${match.odds.away}`}
+                    />
+                  </div>
+
+                  {/* Match Brief Info - Using flex-1 to allow shrinking */}
+                  <div className="flex justify-between gap-2 sm:gap-4">
+                    <div className="flex-1 h-8 bg-white/10 backdrop-blur-sm rounded-full border border-white/5" />
+                    <div className="flex-1 h-8 bg-white/10 backdrop-blur-sm rounded-full border border-white/5" />
+                    <div className="flex-1 h-8 bg-white/10 backdrop-blur-sm rounded-full border border-white/5" />
+                  </div>
                 </div>
               </div>
             </div>
+
+
+            {/* General Matchboard Section */}
+            
           </div>
         </div>
         {/* Right column */}

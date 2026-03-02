@@ -33,6 +33,15 @@
     scrollbar-width: none;
     /* Firefox */
   }
+
+  .probability-bar-segment {
+    @apply h-full cursor-pointer transition-all duration-300;
+    width: var(--segment-width, 0%);
+  }
+
+  .probability-bar-segment:hover {
+    @apply opacity-70 scale-y-110;
+  }
 }
 
 body {

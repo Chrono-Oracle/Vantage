@@ -27,13 +27,13 @@ export default function HeroCarousel() {
           className="relative h-full w-full"
         >
           {/* Image Hero */}
-          <div className="relative overflow-hidden -translate-y-1/6 w-full h-[120%] bottom-0 ">
+          <div className="hidden md:block relative overflow-hidden md:translate-y-14 lg:-translate-y-1/6 w-full md:h-[80%] lg:h-[120%] bottom-0 ">
             <Image
               src={match.mainPlayerImg}
               alt="Main Player"
               width={500}
               height={450}
-              className=" absolute left-1/2 -translate-y-5 -translate-x-1/2  object-contain object-bottom z-20"
+              className=" absolute left-1/2 lg:-translate-y-5 -translate-x-1/2  object-contain object-bottom z-10"
             />
           </div>
         </motion.div>
