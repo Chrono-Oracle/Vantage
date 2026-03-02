@@ -33,21 +33,23 @@ export default function HeroCarousel() {
               alt="Main Player"
               width={500}
               height={450}
-              className=" absolute left-1/2 -translate-y-5 -translate-x-1/2  object-contain object-bottom"
+              className=" absolute left-1/2 -translate-y-5 -translate-x-1/2  object-contain object-bottom z-20"
             />
           </div>
         </motion.div>
       </AnimatePresence>
 
+      
+
       {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+      {/* <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
         {dummyMatches.map((_, i) => (
           <div
             key={i}
             className={`h-2 w-2 rounded-full transition-all ${i === currentIndex ? "bg-white w-4" : "bg-white/30"}`}
           />
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }
