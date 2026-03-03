@@ -4,11 +4,52 @@ import { useAuth } from "@/utils/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/sidebar-context";
 import HeroCarousel from "@/components/HeroCarousel";
-import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
-import { dummyMatches } from "@/data/dummyMatches";
+import { useEffect, useState, useMemo } from "react";
+import { Clock, Trophy, ChevronDown } from "lucide-react";
+import { dummyMatches, dashboardMatches } from "@/data/dummyMatches";
+import MatchTable from "@/components/MatchTable";
+import LeagueFilter from "@/components/LeagueFilter";
+
+const STATUS_FILTERS = [
+  { id: "all", label: "All Games" },
+  { id: "live", label: "Live Games" },
+  { id: "finished", label: "Finished" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "pinned", label: "Pinned" },
+];
 
 export default function DashboardPage() {
+
+  const [activeSport, setActiveSport] = useState("Football");
+  const [activeStatus, setActiveStatus] = useState("all");
+  const [activeLeague, setActiveLeague] = useState("All");
+  const [isSportMenuOpen, setIsSportMenuOpen] = useState(false);
+
+  // 1. Filter Data based on Sport and Status first
+  const filteredByStatus = useMemo(() => {
+    return dashboardMatches.filter((match) => {
+      const sportMatch = match.sport === activeSport;
+      let statusMatch = false;
+
+      if (activeStatus === "all") statusMatch = true;
+      else if (activeStatus === "pinned") statusMatch = match.isPinned;
+      else statusMatch = match.status === activeStatus;
+
+      return sportMatch && statusMatch;
+    });
+  }, [activeSport, activeStatus]);
+
+  // 2. Get unique leagues from the currently filtered results
+  const availableLeagues = useMemo(() => {
+    return Array.from(new Set(filteredByStatus.map((m) => m.league)));
+  }, [filteredByStatus]);
+
+  // 3. Final data to send to the table (filtered by League if one is selected)
+  const finalDisplayData = useMemo(() => {
+    if (activeLeague === "All") return filteredByStatus;
+    return filteredByStatus.filter((m) => m.league === activeLeague);
+  }, [filteredByStatus, activeLeague]);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const router = useRouter();
@@ -16,6 +57,8 @@ export default function DashboardPage() {
   const { isLogin, isAuthLoading } = useAuth();
 
   const { isExpanded } = useSidebar();
+
+  
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,6 +85,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  
 
   return (
     <>
@@ -134,9 +179,55 @@ export default function DashboardPage() {
               </div>
             </div>
 
-
             {/* General Matchboard Section */}
-            
+            <div className="w-full bg-[#0a0a0a] rounded-xl border border-white/5 overflow-hidden shadow-2xl mt-6">
+              {/* HEADER (Same as Phase 1) */}
+              <div className="p-4 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <h2 className="text-white text-sm font-bold tracking-tight uppercase">
+                    Match Center
+                  </h2>
+                </div>
+
+                {/* Sport Dropdown code here... */}
+              </div>
+
+              {/* FIRST ROW: Status Filters */}
+              <div className="flex items-center gap-2 p-2 bg-black/40 border-b border-white/5 overflow-x-auto no-scrollbar">
+                {STATUS_FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => {
+                      setActiveStatus(f.id);
+                      setActiveLeague("All");
+                    }}
+                    className={`flex-none px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      activeStatus === f.id
+                        ? "bg-amber-400 text-black"
+                        : "text-gray-500 hover:text-white"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* SECOND ROW: Dynamic League Filter */}
+              <LeagueFilter
+                availableLeagues={availableLeagues}
+                activeLeague={activeLeague}
+                setActiveLeague={setActiveLeague}
+              />
+
+              {/* THIRD ROW: The Matches (Top 5 Logic inside MatchTable) */}
+              <div className="min-h-[400px]">
+                <MatchTable
+                  activeSport={activeSport}
+                  activeStatus={activeStatus}
+                />
+              </div>
+            </div>
           </div>
         </div>
         {/* Right column */}
