@@ -45,8 +45,8 @@ export default function LoginPage() {
       if (request.ok) {
         const response = await request.json();
 
-        const token = response.data.data.token;
-        const role = response.data.data.user.role;
+        const token = response.data.token;
+        const role = response.data.role;
         localStorage.setItem("user", JSON.stringify({ token, role }));
         alert(response.message || "Login successful!");
 

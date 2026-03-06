@@ -1,4 +1,5 @@
 class BaseService {
+
   constructor(model) {
     if (!model) {
       throw new Error("Model is required");

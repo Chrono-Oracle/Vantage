@@ -1,21 +1,58 @@
-const { verifyToken } = require("../lib/jwt.lib");
+const User = require("../../src/models/User");
 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const { verify } = require("../lib/jwt.lib");
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: true, message: "No token provided" });
+const getToken = (req) => {
+  const authorization = req.header("Authorization");
+
+  console.log("Raw Authorization Header:", authorization);
+
+  if (authorization) {
+    const token = authorization.split(" ")[1];
+    return token;
+
+    
   }
 
-  const token = authHeader.split(" ")[1];
-  const result = verifyToken(token); // Use the lib function which knows the secret
-
-  if (result.error) {
-    return res.status(401).json({ error: true, message: result.message });
-  }
-
-  req.user = result.decoded;-
-  next();
+  return null;
 };
 
-module.exports = authMiddleware;
+
+const authLogin = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    if (!token) {
+      return res.status(401).json({
+        message: "Unauthorized, token is missing",
+      });
+    }
+
+    const verifyToken = verify(token);
+    if (!verifyToken) {
+      return res.status(401).json({
+        message: "Unauthorized, invalid token",
+      });
+    }
+
+    const id = verifyToken.id;
+    const user = await User.findById(id).select(
+      "_id email fullName",
+    );
+    if (!user) {
+      return res.status(401).json({
+        message: "Unauthorized, user not found",
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("error: ", error);
+
+    return res.status(500).json({
+      message: "Internal Server Error, please retry later !!!",
+    });
+  }
+};
+
+module.exports = { authLogin }

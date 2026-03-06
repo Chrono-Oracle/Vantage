@@ -1,4 +1,5 @@
 const { Schema, model } = require('mongoose');
+const { lowercase, trim } = require('zod');
 
 const categorySchema = new Schema ({
     name: {
@@ -9,9 +10,27 @@ const categorySchema = new Schema ({
         required: true
     },
 
+    slug: {
+        type: String,
+        lowercase: true,
+        trim: true,
+        unique: true
+    },
+
     sport: {
         type: Schema.Types.ObjectId,
-        ref: 'sports',
+        ref: 'Sport',
+        required: true
+    },
+
+    logo: {
+        type: String,
+        default: ''
+    },
+
+    priority: {
+        type: Number,
+        default: 0
     }
 
 }, { timestamps: true });

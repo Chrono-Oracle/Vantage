@@ -3,31 +3,38 @@ const { Schema, model } = require('mongoose');
 const betSchema = new Schema ({
     user: {
         type: Schema.Types.ObjectId,
-        ref: 'Users',
-        required: true
+        ref: 'User',
+        required: true,
+        index: true
     },
     match: {
         type: Schema.Types.ObjectId,
-        ref: 'Matches',
+        ref: 'Match',
         required: true
     },
-    scoreA: {
-        type: Number,
-        required: true,
-        default: 0
+    choice: {
+        type: String,
+        enum: ['1', 'X', '2'],
+        required: true
     },
-    scoreB: {
+    stake: {
         type: Number,
         required: true,
-        default: 0
+        min: [1, 'Minimum bet is 1'] 
+    },
+    oddsAtPlacement: {
+        type: Number,
+        required: true
+    },
+    potentialPayout: {
+        type: Number,
+        required: true
     },
     status: {
         type: String,
-        enum: ['pending', 'won', 'lost'],
-        required: true,
+        enum: ['pending', 'won', 'lost', 'void', 'cashed_out'],
         default: 'pending'
     }
-
 }, { timestamps: true });
 
 const Bet = model( "Bet", betSchema);

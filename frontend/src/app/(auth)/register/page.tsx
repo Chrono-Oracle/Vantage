@@ -38,7 +38,7 @@ export default function RegisterPage() {
 
     try {
       // Simulate API call
-      const request = await fetch("http://localhost:5000/user/create", {
+      const request = await fetch("http://localhost:5000/user/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

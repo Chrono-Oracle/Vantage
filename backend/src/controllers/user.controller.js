@@ -1,20 +1,36 @@
 const userService = require("../services/user.service");
+const { hashPassword, comparePassword } = require("../../utils/lib/bcrypt.lib");
+const User = require("../models/User");
+const { sign } = require("../../utils/lib/jwt.lib")
 
-const create = async (req, res) => {
-  const result = await userService.create(req.body);
+const register = async (req, res) => {
+  try {
+    const data = req.body;
+    const email = data.email.toLowerCase();
+    const find = await User.findOne({ email });
+    if (find) {
+      return res.status(404).json({
+        message: "Email already exists !!!"
+      });
+    }
 
-  console.log("Result from userService.create:", result);
-  if (result.error) {
-    return res.status(400).json({
-      message: result.error,
+    const password = await hashPassword(data.password);
+
+    // await User.create({ ...data, password });
+
+    const newUser = await userService.create({ ...data, password });
+    console.log("New User Created: ", newUser);
+
+    return res.status(201).json({
+      message: "User registered successfully!!!"
+    })
+
+  } catch (error) {
+    console.log("Error: ", error);
+    return res.status(500).json({
+      message: "Internal Server Error, please retry later !!!",
     });
   }
-
-  return (
-    res.status(201).json({
-      message: "User Created Successfully!!!",
-    })
-  );
 };
 
 const findMany = async (req, res) => {
@@ -72,17 +88,37 @@ const remove = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  const result = await userService.login(req.body);
-  if (result.error) {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() }).select(
+      "_id password role"
+    );
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid credentials !!!",
+      });
+    }
+
+    const verify = await comparePassword(password, user.password);
+    if (verify) {
+      const token = sign({ id: user._id, role: user.role, email: user.email });
+      console.log('role: user.role', user.role);
+      
+      return res.json({
+        message: "User login successfully !!!",
+        data: { token, id: user._id, role: user.role },
+      });
+    }
+
     return res.status(400).json({
-      message: result.error,
+      message: "Invalid credentials !!!",
+    });
+  } catch (error) {
+    console.log("Error: ", error);
+    return res.status(500).json({
+      message: "Internal Server Error, please retry later !!!",
     });
   }
-
-  return res.status(200).json({
-    message: "User logged in successfully!!!",
-    data: result,
-  });
 };
 
 const profile = async (req, res) => {
@@ -100,7 +136,7 @@ const profile = async (req, res) => {
 };
 
 module.exports = {
-  create,
+  register,
   findMany,
   find,
   update,
