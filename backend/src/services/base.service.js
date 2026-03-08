@@ -1,5 +1,4 @@
 class BaseService {
-
   constructor(model) {
     if (!model) {
       throw new Error("Model is required");
@@ -13,6 +12,14 @@ class BaseService {
       const result = await this.model.create(data);
       return { error: false, data: result, message: "Successfully created" };
     } catch (error) {
+      if (error.code === 11000) {
+        // You can inspect error.keyValue / error.keyPattern if you want
+        return {
+          error: true,
+          message: error.message || "ALREADY EXISTS.",
+        };
+      }
+
       return {
         error: true,
         message: error.message || "Failed to create, try again later",

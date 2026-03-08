@@ -2,16 +2,23 @@ const { Router } = require('express');
 const router = Router();
 const userController = require('../src/controllers/user.controller')
 const { userValidation } = require('../utils/validations/user.validation')
-const { authLogin } = require('../utils/middlewares/auth.middleware')
+const { authMiddleware } = require('../utils/middlewares/auth.middleware')
 const adminMiddleware = require('../utils/middlewares/admin.middleware')
 
 
 router.post('/register', userValidation, userController.register);
-router.post('/login', authLogin, userController.login);
+router.post('/login', userController.login);
 
-router.post('/verify-auth', authLogin, userController.profile);
+router.post('/verify-auth', authMiddleware, userController.profile);
 
-router.get('/profile', authLogin, userController.profile);
+router.get('/me', authMiddleware, userController.profile);
+
+// POST /user/:userId/follow
+router.post("/:userId/follow", authMiddleware, userController.follow);
+
+// POST /user/:userId/unfollow
+router.post("/:userId/unfollow", authMiddleware, userController.unfollow);
+
 
 //Admin Only Routes
 router.get('/', adminMiddleware, userController.findMany);

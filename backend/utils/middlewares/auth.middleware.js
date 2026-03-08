@@ -5,7 +5,7 @@ const { verify } = require("../lib/jwt.lib");
 const getToken = (req) => {
   const authorization = req.header("Authorization");
 
-  console.log("Raw Authorization Header:", authorization);
+  // console.log("Raw Authorization Header:", authorization);
 
   if (authorization) {
     const token = authorization.split(" ")[1];
@@ -18,7 +18,7 @@ const getToken = (req) => {
 };
 
 
-const authLogin = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const token = getToken(req);
     if (!token) {
@@ -55,4 +55,4 @@ const authLogin = async (req, res, next) => {
   }
 };
 
-module.exports = { authLogin }
+module.exports = { authMiddleware }

@@ -1,7 +1,7 @@
 const userService = require("../services/user.service");
 const { hashPassword, comparePassword } = require("../../utils/lib/bcrypt.lib");
 const User = require("../models/User");
-const { sign } = require("../../utils/lib/jwt.lib")
+const { sign } = require("../../utils/lib/jwt.lib");
 
 const register = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ const register = async (req, res) => {
     const find = await User.findOne({ email });
     if (find) {
       return res.status(404).json({
-        message: "Email already exists !!!"
+        message: "Email already exists !!!",
       });
     }
 
@@ -22,9 +22,8 @@ const register = async (req, res) => {
     console.log("New User Created: ", newUser);
 
     return res.status(201).json({
-      message: "User registered successfully!!!"
-    })
-
+      message: "User registered successfully!!!",
+    });
   } catch (error) {
     console.log("Error: ", error);
     return res.status(500).json({
@@ -91,19 +90,28 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email.toLowerCase() }).select(
-      "_id password role"
+      "_id password role",
     );
+
+    const result = await userService.login({ email, password });
+
     if (!user) {
       return res.status(400).json({
-        message: "Invalid credentials !!!",
+        message: "User not found",
       });
     }
 
     const verify = await comparePassword(password, user.password);
+    if (!verify) {
+      return res.status(400).json({
+        message: "Incorrect Password",
+      });
+    }
+
     if (verify) {
       const token = sign({ id: user._id, role: user.role, email: user.email });
-      console.log('role: user.role', user.role);
-      
+      console.log("role: user.role", user.role);
+
       return res.json({
         message: "User login successfully !!!",
         data: { token, id: user._id, role: user.role },
@@ -131,7 +139,41 @@ const profile = async (req, res) => {
 
   return res.status(200).json({
     message: "User profile fetched successfully!!!",
-    data: result,
+    data: result.data,
+  });
+};
+
+const follow = async (req, res) => {
+  const currentUserId = req.user.id; // from auth middleware
+  const targetUserId = req.params.userId;
+
+  const result = await userService.followUser(currentUserId, targetUserId);
+
+  if (result.error) {
+    return res.status(400).json({
+      message: result.message,
+    });
+  }
+
+  return res.status(200).json({
+    message: result.message,
+  });
+};
+
+const unfollow = async (req, res) => {
+  const currentUserId = req.user.id;
+  const targetUserId = req.params.userId;
+
+  const result = await userService.unfollowUser(currentUserId, targetUserId);
+
+  if (result.error) {
+    return res.status(400).json({
+      message: result.message,
+    });
+  }
+
+  return res.status(200).json({
+    message: result.message,
   });
 };
 
@@ -143,4 +185,6 @@ module.exports = {
   remove,
   login,
   profile,
+  follow,
+  unfollow,
 };

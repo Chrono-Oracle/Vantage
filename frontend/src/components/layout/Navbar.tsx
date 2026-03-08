@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, ChevronDown, Globe, Wallet, PlusCircle, History, X } from "lucide-react";
-import { useSidebar } from "../sidebar-context";
+import { useSidebar } from "./sidebar-context";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 

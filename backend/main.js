@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("node:path")
 
 const { connect } = require("./configs/database.config");
 const sportRoute = require("./routes/sport.route");
@@ -8,6 +9,9 @@ const userRoute = require("./routes/user.route");
 const matchRoute = require("./routes/match.route");
 const betRoute = require("./routes/bet.route");
 const categoryRoute = require("./routes/category.route");
+const leagueRoute = require("./routes/league.route");
+const teamRoute = require("./routes/team.route");
+const uploadRoutes = require("./routes/upload.route");
 
 const run = async () => {
   try {
@@ -18,6 +22,8 @@ const run = async () => {
 
     app.use(cors());
     app.use(express.json());
+    app.use(express.urlencoded({ extended: false }));
+    app.use(express.static(path.join(__dirname, "public")));
 
     //Import all routes
     app.use("/sport", sportRoute);
@@ -25,6 +31,10 @@ const run = async () => {
     app.use("/match", matchRoute);
     app.use("/bet", betRoute);
     app.use("/category", categoryRoute);
+    app.use("/league", leagueRoute);
+    app.use("/team", teamRoute);
+
+    app.use("/upload", uploadRoutes);
 
     app.listen(PORT, () => {
       console.log("Application run on http://localhost:" + PORT);

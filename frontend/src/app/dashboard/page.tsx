@@ -2,11 +2,12 @@
 
 import { useAuth } from "@/utils/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useSidebar } from "@/components/sidebar-context";
+import { useSidebar } from "@/components/layout/sidebar-context";
 import HeroCarousel from "@/components/HeroCarousel";
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import { dummyMatches } from "@/data/dummyMatches";
+import GamesBoard from "@/components/GamesBoard";
 
 export default function DashboardPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -136,6 +137,11 @@ export default function DashboardPage() {
 
 
             {/* Matchboard Section */}
+            <div className="my-10">
+              <GamesBoard/>
+            </div>
+
+            Below
           </div>
         </div>
         {/* Right column */}

@@ -9,7 +9,7 @@ const sign = (data) => {
 
 const verify = (token) => {
     try {
-        console.log('Token:', token);
+        // console.log('Token:', token);
         return jwt.verify(token, KEY);
     } catch (error) {
         console.log('JWT VERIFY ERROR: ', error);

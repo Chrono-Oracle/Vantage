@@ -4,6 +4,15 @@ import { Eye, EyeClosed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "react-toastify";
+
+type LoginResponse = {
+  message: string;
+  data?: {
+    token: string;
+    role: "admin" | "user" | string;
+  };
+};
 
 //Basic modern login page.tsx with form
 export default function LoginPage() {
@@ -42,25 +51,48 @@ export default function LoginPage() {
         body: JSON.stringify(loginData),
       });
 
-      if (request.ok) {
-        const response = await request.json();
+      if (!request.ok) {
+        const errorBody = (await request.json()) as {
+          message?: string;
+          error?: string;
+        };
 
-        const token = response.data.token;
-        const role = response.data.role;
+        const msg =
+          errorBody.message ||
+          errorBody.error ||
+          "Invalid email or password";
+
+        toast.error(msg); // 🔥 toast for wrong credentials
+        return;
+      }
+
+      const response = (await request.json()) as LoginResponse;
+
+      if (!response.data?.token || !response.data.role) {
+        toast.error("Invalid response from server");
+        return;
+      }
+
+      const token = response.data.token;
+      const role = response.data.role;
+
+      if (typeof window !== "undefined") {
         localStorage.setItem("user", JSON.stringify({ token, role }));
-        alert(response.message || "Login successful!");
+      }
 
-        setLoginData(DEFAULT_DATA);
-        if (role === "admin") {
-          router.push("/admin/dashboard");
-        } else {
-          router.push("/dashboard");
-        }
+      toast.success(response.message || "Login successful! 🎉");
+
+      setLoginData(DEFAULT_DATA);
+
+      if (role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/dashboard");
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Submit error";
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

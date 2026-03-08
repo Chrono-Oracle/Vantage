@@ -6,7 +6,7 @@ const userValidation = (req, res, next) => {
   const schema = z.object({
     fullName: z.string().min(4).max(50).trim(),
     email: z.string().email().trim().toLowerCase(),
-    phone: z.string().min(8).max(20).trim(),
+    phone: z.string().min(8).max(15).trim(),
     dob: z.coerce.date().refine(data => {
         const today = new Date();
         const age = today.getFullYear() - data.getFullYear();

@@ -1,7 +1,7 @@
 "use client";
 
-import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
-import { Sidebar } from "@/components/Sidebar";
+import { SidebarProvider, useSidebar } from "@/components/layout/sidebar-context";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/utils/contexts/AuthContext";

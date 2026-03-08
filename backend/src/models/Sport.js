@@ -16,7 +16,8 @@ const sportSchema = new Schema ({
         lowercase: true
     },
     logo: {
-        type: String
+        type: String,
+        default: null,
     },
     isActive: {
         type: Boolean,

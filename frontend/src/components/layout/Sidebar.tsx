@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
@@ -15,8 +16,9 @@ import {
   BadgePlus,
 } from "lucide-react";
 import { useSidebar } from "./sidebar-context";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { imgUrl } from "@/utils/libs/cdn";
 
 const navItems = [
   { icon: Home, label: "Dashboard", href: "/dashboard" },
@@ -27,9 +29,88 @@ const navItems = [
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
+type User = {
+  _id: string;
+  fullName: string;
+  email: string;
+  avatar: string | null;
+
+  // Gamification
+  level: number;
+  rankTitle: string;
+  experiencePoints: number;
+
+  // Social counts
+  followersCount: number;
+  followingCount: number;
+
+  // Favorites (populated)
+  favoriteSport?: {
+    _id: string;
+    name: string;
+    image?: string;
+  } | null;
+
+  favoriteClub?: {
+    _id: string;
+    name: string;
+    logo?: string;
+  } | null;
+};
+
 export function Sidebar() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  const [loading, setLoading] = useState(true);
   const { isExpanded, toggleSidebar } = useSidebar();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const stored = localStorage.getItem("user");
+
+      if (!stored) {
+        console.log("No user in localStorage, redirecting to login");
+        router.push("/login");
+        return;
+      }
+
+      const { token } = JSON.parse(stored) as { token: string; role: string };
+
+      try {
+        const res = await fetch("http://localhost:5000/user/me", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          console.log("Failed to fetch user, status:", res.status);
+          router.push("/login");
+          return;
+        }
+
+        const body = (await res.json()) as {
+          error: boolean;
+          data: User;
+          message: string;
+        };
+        console.log("User from backend:", body.data);
+
+        if (!body.error) {
+          setUser(body.data);
+        }
+      } catch (err) {
+        console.error("Error fetching user:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <>
@@ -92,26 +173,44 @@ export function Sidebar() {
           {/* Top Header */}
           <div className="mb-5 grid justify-items-center">
             {!isExpanded && (
-              <div className="mt-12 w-10 h-10 bg-amber-600 rounded-full md:hidden" />
+              <div className="mt-12 w-10 h-10 rounded-full md:hidden">
+                {user?.avatar && (
+                  <img
+                    className="object-cover"
+                    src={imgUrl(user.avatar)}
+                    alt="User"
+                  />
+                )}
+              </div>
             )}
 
             <AnimatePresence>
               {isExpanded && (
                 <motion.div className="grid justify-items-center">
-                  <div className="w-15 h-15 mb-2 bg-amber-600 rounded-full" />
+                  <div className=" mb-2 rounded-full overflow-hidden">
+                    {user?.avatar && (
+                      <img
+                        className="object-cover w-15 h-15"
+                        src={imgUrl(user.avatar)}
+                        alt="User"
+                      />
+                    )}
+                  </div>
                   <div className="grid justify-items-center ">
-                    <h3 className="text-[.9rem] font-semibold">Daniel Green</h3>
+                    <h3 className="text-[.9rem] font-semibold">
+                      {user?.fullName}
+                    </h3>
                     <div className="flex gap-3 text-[.8rem]">
                       <span className="text-gray-400 font-semibold">
-                        Amateur
+                        {user?.rankTitle}
                       </span>
-                      <span>Level 1</span>
+                      <span>Level {user?.level}</span>
                     </div>
                     <div className="flex gap-x-2">
                       <div className="">
                         <div className="flex font-semibold justify-center gap-1 text-[.7rem] items-center">
                           <User width={18} />
-                          <span>1,546</span>
+                          <span>{user?.followersCount}</span>
                         </div>
                         <div className="flex gap-1 text-[.7rem] items-center">
                           <Star width={12} />
@@ -121,7 +220,7 @@ export function Sidebar() {
                       <div className="">
                         <div className="flex font-semibold justify-center gap-1 text-[.7rem] items-center">
                           <User width={18} />
-                          <span>150</span>
+                          <span>{user?.followingCount}</span>
                         </div>
                         <div className="flex gap-1 text-[.7rem] items-center">
                           <Check width={12} />

@@ -1,4 +1,5 @@
 const matchService = require("../services/match.service");
+const Match = require("../models/Match");
 
 const create = async (req, res) => {
   const result = await matchService.create(req.body);
@@ -14,16 +15,36 @@ const create = async (req, res) => {
 };
 
 const findMany = async (req, res) => {
-  const result = await matchService.findBy(req.body);
-  if (result.error) {
-    return res.status(400).json({
-      message: result.error,
+  try {
+    const { sport, status, leagueId } = req.query;
+
+    const filter = {};
+    if (sport) {
+      filter.sport = sport; // ObjectId as string
+    }
+    if (status) {
+      filter.status = status; // "upcoming" | "ongoing" | "finished"
+    }
+    if (leagueId) {
+      filter.league = leagueId; // ObjectId as string
+    }
+
+    const matches = await Match.find(filter)
+      .populate("league", "name logo")
+      .populate("teamA", "name logo")
+      .populate("teamB", "name logo")
+      .sort({ startTime: 1 });
+
+    return res.status(200).json({
+      message: "Matches fetched successfully!!!",
+      data: matches,
+    });
+  } catch (error) {
+    console.error("Error fetching matches:", error);
+    return res.status(500).json({
+      message: "Internal Server Error, please retry later !!!",
     });
   }
-
-  return res.status(201).json({
-    message: "Matches fetched successfully!!!",
-  });
 };
 
 const find = async (req, res) => {
