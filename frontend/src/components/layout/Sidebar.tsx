@@ -262,11 +262,11 @@ export function Sidebar() {
                 </button>
 
                 {/* Tooltip  */}
-                {!isExpanded && (
-                  <div className="hidden md:block fixed left-18 translate-y-1/3 bg-black text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-2 whitespace-nowrap">
+                {/* {!isExpanded && (
+                  <div className="hidden md:block fixed left- translate-y-1/3 bg-black text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-2 whitespace-nowrap">
                     {item.label}
                   </div>
-                )}
+                )} */}
               </Link>
             ))}
           </nav>

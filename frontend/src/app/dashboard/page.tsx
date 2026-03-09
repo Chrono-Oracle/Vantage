@@ -7,7 +7,8 @@ import HeroCarousel from "@/components/HeroCarousel";
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import { dummyMatches } from "@/data/dummyMatches";
-import GamesBoard from "@/components/GamesBoard";
+import GamesBoard from "@/components/boards/GamesBoard";
+import GamesBoardX from "@/components/boards/GameBoardX";
 
 export default function DashboardPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -138,7 +139,8 @@ export default function DashboardPage() {
 
             {/* Matchboard Section */}
             <div className="my-10">
-              <GamesBoard/>
+              {/* <GamesBoard/> */}
+              <GamesBoardX/>
             </div>
 
             Below
