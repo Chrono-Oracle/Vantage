@@ -22,6 +22,13 @@ const betSchema = new Schema ({
         required: true,
         min: [1, 'Minimum bet is 1'] 
     },
+    xpEarned: {
+        type: Number,
+        default: 0
+    },
+    settledAt: {
+        type: Date
+    },
     oddsAtPlacement: {
         type: Number,
         required: true

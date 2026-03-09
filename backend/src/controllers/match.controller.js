@@ -86,10 +86,32 @@ const remove = async (req, res) => {
   });
 };
 
+const follow = async (req, res) => {
+  // req.user.id comes from your auth middleware
+  const result = await matchService.followMatch(req.user.id, req.params.id);
+  if (result.error) return res.status(400).json({ message: result.message });
+  return res.status(200).json({ message: result.message });
+};
+
+const unfollow = async (req, res) => {
+  const result = await matchService.unfollowMatch(req.user.id, req.params.id);
+  if (result.error) return res.status(400).json({ message: result.message });
+  return res.status(200).json({ message: result.message });
+};
+
+const getFollowers = async (req, res) => {
+  const result = await matchService.getMatchFollowers(req.params.id);
+  if (result.error) return res.status(400).json({ message: result.message });
+  return res.status(200).json({ data: result.data });
+};
+
 module.exports = {
   create,
   findMany,
   find,
   update,
   remove,
+  follow,
+  unfollow,
+  getFollowers
 };

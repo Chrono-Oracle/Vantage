@@ -80,12 +80,6 @@ const userSchema = new Schema(
       },
     ],
 
-    //Social Count
-    following: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    followers: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    followersCount: { type: Number, default: 0, min: 0 },
-    followingCount: { type: Number, default: 0, min: 0 },
-
     //favorites
     favoriteSport: {
       type: Schema.Types.ObjectId,
@@ -103,16 +97,6 @@ const userSchema = new Schema(
   { timestamps: true },
 );
 
-// Prevent self-following
-userSchema.pre("save", function (next) {
-  if (
-    this.following &&
-    this.following.some((id) => id.toString() === this._id.toString())
-  ) {
-    return next(new Error("Cannot follow yourself"));
-  }
-  next();
-});
 
 const User = model("User", userSchema);
 

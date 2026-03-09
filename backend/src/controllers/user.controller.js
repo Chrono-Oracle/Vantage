@@ -144,20 +144,16 @@ const profile = async (req, res) => {
 };
 
 const follow = async (req, res) => {
-  const currentUserId = req.user.id; // from auth middleware
+  const currentUserId = req.user.id;
   const targetUserId = req.params.userId;
 
   const result = await userService.followUser(currentUserId, targetUserId);
 
   if (result.error) {
-    return res.status(400).json({
-      message: result.message,
-    });
+    return res.status(400).json({ message: result.message });
   }
 
-  return res.status(200).json({
-    message: result.message,
-  });
+  return res.status(200).json({ message: result.message });
 };
 
 const unfollow = async (req, res) => {
@@ -167,14 +163,10 @@ const unfollow = async (req, res) => {
   const result = await userService.unfollowUser(currentUserId, targetUserId);
 
   if (result.error) {
-    return res.status(400).json({
-      message: result.message,
-    });
+    return res.status(400).json({ message: result.message });
   }
 
-  return res.status(200).json({
-    message: result.message,
-  });
+  return res.status(200).json({ message: result.message });
 };
 
 module.exports = {

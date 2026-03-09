@@ -16,9 +16,11 @@ const followSchema = new Schema(
   { timestamps: true }
 );
 
-// Ensure one pair per relationship
+// 1. Keeps relationships unique (prevents double following)
 followSchema.index({ follower: 1, following: 1 }, { unique: true });
 
-const Follow = model("Follow", followSchema);
+// 2. Optimizes the "Get my followers count" query
+followSchema.index({ following: 1 }); 
 
+const Follow = model("Follow", followSchema);
 module.exports = Follow;

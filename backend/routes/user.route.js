@@ -13,11 +13,11 @@ router.post('/verify-auth', authMiddleware, userController.profile);
 
 router.get('/me', authMiddleware, userController.profile);
 
-// POST /user/:userId/follow
-router.post("/:userId/follow", authMiddleware, userController.follow);
+// POST /user/follow/:userId
+router.post("/follow/:userId", authMiddleware, userController.follow);
 
-// POST /user/:userId/unfollow
-router.post("/:userId/unfollow", authMiddleware, userController.unfollow);
+// POST /user/unfollow/:userId
+router.post("/unfollow/:userId", authMiddleware, userController.unfollow);
 
 
 //Admin Only Routes
