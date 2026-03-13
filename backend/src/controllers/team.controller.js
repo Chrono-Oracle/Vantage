@@ -15,7 +15,7 @@ const create = async (req, res) => {
 };
 
 const findMany = async (req, res) => {
-  const result = await teamService.findBy(req.body);
+  const result = await teamService.find(req.body);
   if (result.error) {
     return res.status(400).json({
       message: result.error || result.message,

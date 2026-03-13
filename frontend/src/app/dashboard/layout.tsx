@@ -1,17 +1,23 @@
 "use client";
 
-import { SidebarProvider, useSidebar } from "@/components/layout/sidebar-context";
+import {
+  SidebarProvider,
+  useSidebar,
+} from "@/utils/contexts/sidebar-context";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/utils/contexts/AuthContext";
+import { UserProvider } from "@/utils/contexts/UserContext";
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isExpanded, toggleSidebar } = useSidebar();
 
   return (
-    <div className={`relative bg-gray-100 flex min-h-screen ${isExpanded ? "overflow-hidden" : ""}`}>
-      <Navbar/>
+    <div
+      className={`relative bg-gray-100 flex min-h-screen ${isExpanded ? "overflow-hidden" : ""}`}
+    >
+      <Navbar />
       <Sidebar />
       {/* Dark Overlay: Only visible on mobile when sidebar is expanded */}
       <AnimatePresence>
@@ -25,7 +31,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           />
         )}
       </AnimatePresence>
-
 
       <motion.main
         className={`flex-1 pt-5 pl-6 pr-3 md:p-8 transition-all min-h-screen overflow-x-hidden ${
@@ -45,9 +50,11 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthProvider>
-      <SidebarProvider>
-        <DashboardContent>{children}</DashboardContent>
-      </SidebarProvider>
+      <UserProvider>
+        <SidebarProvider>
+          <DashboardContent>{children}</DashboardContent>
+        </SidebarProvider>
+      </UserProvider>
     </AuthProvider>
   );
 }

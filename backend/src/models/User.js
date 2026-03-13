@@ -73,30 +73,25 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
-    bets: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Bet",
-      },
-    ],
 
     //favorites
-    favoriteSport: {
-      type: Schema.Types.ObjectId,
-      ref: "Sport",
-      default: null,
-    },
-    favoriteClub: {
-      type: Schema.Types.ObjectId,
-      ref: "Team",
-      default: null,
-    },
+    favoriteSports: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Sport",
+      },
+    ],
+    favoriteClubs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Team",
+      },
+    ],
 
     lastLogin: { type: Date },
   },
   { timestamps: true },
 );
-
 
 const User = model("User", userSchema);
 

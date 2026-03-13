@@ -1,8 +1,11 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, spring } from "framer-motion";
+import { toast } from "react-toastify";
+import { useUser } from "@/utils/contexts/UserContext";
+import { LeagueMatchesModal } from "../LeagueMatchesModal";
 
 type GameCategory = "all" | "ongoing" | "finished" | "upcoming";
 
@@ -24,6 +27,8 @@ type TeamLite = {
   _id: string;
   name: string;
   logo?: string;
+  shortName: string;
+  code: string;
 };
 
 type Match = {
@@ -44,6 +49,23 @@ type Match = {
   };
 };
 
+type Choice = "1" | "X" | "2";
+
+type BetSlipItem = {
+  matchId: string;
+  match: Match; // full match object for UI
+  choice: Choice;
+  odds: number;
+};
+
+type BetSlipState = {
+  items: BetSlipItem[];
+  stakePerBet: number;
+  isOpen: boolean;
+  isAvailable: boolean;
+  errorMessage?: string;
+};
+
 const categories: { value: GameCategory; label: string }[] = [
   { value: "all", label: "All Games" },
   { value: "ongoing", label: "Live Games" },
@@ -54,9 +76,13 @@ const categories: { value: GameCategory; label: string }[] = [
 const LeagueRow = ({
   league,
   category,
+  onSelectOdds,
+  onViewMore,
 }: {
   league: League;
   category: string;
+  onSelectOdds: (match: Match, choice: Choice, odds: number) => void;
+  onViewMore: (league: League) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -190,9 +216,9 @@ const LeagueRow = ({
         <div className="grid grid-flow-col-dense items-center px-4">
           <div>Match</div>
           <div className=" gap-x-14 flex justify-end text-[.7rem]">
-            <span>O</span>
-            <span>D</span>
-            <span>O</span>
+            <span>1</span>
+            <span>X</span>
+            <span>2</span>
           </div>
         </div>
       </div>
@@ -205,59 +231,92 @@ const LeagueRow = ({
           ) : (
             <div className="grid gap-y-3">
               {matches.length > 0 ? (
-                matches.map((match) => (
-                  <div key={match._id} className="flex justify-between px-3">
-                    <div className="flex">
-                      {/* Team A column (fixed-ish width) */}
-                      <div className="flex items-center justify-start gap-2 pr-10 font-semibold w-50">
-                        {match.teamA.logo && (
-                          <img
-                            src={match.teamA.logo}
-                            alt={match.teamA.name}
-                            className="w-6 h-6"
-                          />
-                        )}
-                        <span className="text-sm truncate">
-                          {match.teamA.name}
-                        </span>
-                      </div>
+                <>
+                  {matches.map((match) => (
+                    <div key={match._id} className="flex justify-between px-3">
+                      <div className="flex">
+                        {/* Team A column (fixed-ish width) */}
+                        <div className="flex items-center justify-start gap-2 pr-10 font-semibold w-50">
+                          {match.teamA.logo && (
+                            <img
+                              src={match.teamA.logo}
+                              alt={match.teamA.name}
+                              className="w-6 h-6"
+                            />
+                          )}
+                          <span className="text-sm truncate">
+                            {match.teamA.shortName}
+                          </span>
+                        </div>
 
-                      {/* score / vs circle column (fixed width) */}
-                      <div className="flex items-center justify-center w-16">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-[.7rem] font-bold">
-                          {getMatchMiddleLabel(match)}
+                        {/* score / vs circle column (fixed width) */}
+                        <div className="flex items-center justify-center w-16">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-[.7rem] font-bold">
+                            {getMatchMiddleLabel(match)}
+                          </div>
+                        </div>
+
+                        {/* Team B column (fixed-ish width) */}
+                        <div className="flex items-center gap-2 font-semibold w-50 justify-end pl-10">
+                          <span className="text-sm truncate text-right">
+                            {match.teamB.shortName}
+                          </span>
+                          {match.teamB.logo && (
+                            <img
+                              src={match.teamB.logo}
+                              alt={match.teamB.name}
+                              className="w-6 h-6"
+                            />
+                          )}
                         </div>
                       </div>
 
-                      {/* Team B column (fixed-ish width) */}
-                      <div className="flex items-center gap-2 font-semibold w-50 justify-end pl-10">
-                        <span className="text-sm truncate text-right">
-                          {match.teamB.name}
-                        </span>
-                        {match.teamB.logo && (
-                          <img
-                            src={match.teamB.logo}
-                            alt={match.teamB.name}
-                            className="w-6 h-6"
-                          />
-                        )}
+                      {/* Odds Display */}
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem] cursor-pointer hover:shadow-md hover:bg-blue-500 hover:text-white hover:font-bold transition duration-100 ease-in-out"
+                          onClick={() =>
+                            onSelectOdds(match, "1", match.odds.home)
+                          }
+                        >
+                          {match.odds.home.toFixed(2)}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem] cursor-pointer hover:shadow-md hover:bg-blue-500 hover:text-white hover:font-bold transition duration-100 ease-in-out"
+                          onClick={() =>
+                            onSelectOdds(match, "X", match.odds.draw)
+                          }
+                        >
+                          {match.odds.draw.toFixed(2)}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem] cursor-pointer hover:shadow-md hover:bg-blue-500 hover:text-white hover:font-bold transition duration-100 ease-in-out"
+                          onClick={() =>
+                            onSelectOdds(match, "2", match.odds.away)
+                          }
+                        >
+                          {match.odds.away.toFixed(2)}
+                        </button>
                       </div>
                     </div>
+                  ))}
 
-                    {/* Odds Display */}
-                    <div className="flex gap-4">
-                      <button className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem]">
-                        {match.odds.home.toFixed(2)}
-                      </button>
-                      <button className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem]">
-                        {match.odds.draw.toFixed(2)}
-                      </button>
-                      <button className="bg-gray-200 py-2 px-3 rounded-lg text-[.7rem]">
-                        {match.odds.away.toFixed(2)}
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  {matchCount > matches.length && (
+                    <button
+                      type="button"
+                      className="mt-2 w-full text-center text-white text-[.75rem] font-semibold bg-blue-500 py-2
+                       cursor-pointer"
+                      onClick={() => onViewMore(league)}
+                    >
+                      VIEW ALL MATCHES ({matchCount - matches.length} more)
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="grid justify-center">
                   <span className="text-gray-400 font-bold">
@@ -275,26 +334,64 @@ const LeagueRow = ({
 
 export default function GamesBoardX() {
   const [sports, setSports] = useState<Sport[]>([]);
-  const [selectedSportId, setSelectedSportId] = useState("football-id");
+  const [selectedSportId, setSelectedSportId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>("all");
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
 
   const [leagues, setLeagues] = useState<League[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showMore, setShowMore] = useState(false);
+
+  const [expandedLeague, setExpandedLeague] = useState<League | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<GameCategory>("all");
+
+  // const [showMore, setShowMore] = useState(false);
+
+  const { refreshUserProfile } = useUser();
+  
+
+  const [betSlip, setBetSlip] = useState<BetSlipState>({
+    items: [],
+    stakePerBet: 0,
+    isOpen: false,
+    isAvailable: true,
+    errorMessage: undefined,
+  });
+
+  function removeSelectionFromSlip(matchId: string) {
+    setBetSlip((prev) => ({
+      ...prev,
+      items: prev.items.filter((i) => i.matchId !== matchId),
+    }));
+  }
+
+  function clearSlip() {
+    setBetSlip({
+      items: [],
+      stakePerBet: 0,
+      isOpen: false,
+      isAvailable: true,
+      errorMessage: undefined,
+    });
+  }
 
   useEffect(() => {
     const fetchSports = async () => {
       try {
         const res = await fetch("http://localhost:5000/sport");
         const body = (await res.json()) as { data: Sport[] };
-        console.log("Sports body:", body);
         setSports(body.data ?? []);
 
-        // set default selected sport if none yet
         if (!selectedSportId && body.data && body.data.length > 0) {
-          setSelectedSportId(body.data[0]._id);
+          // Try to find Football (case‑insensitive, or by slug)
+          const football =
+            body.data.find(
+              (s) =>
+                s.name.toLowerCase() === "football" ||
+                s.slug?.toLowerCase() === "football",
+            ) || body.data[0];
+
+          setSelectedSportId(football._id);
         }
       } catch (err) {
         console.error("Error fetching sports:", err);
@@ -358,19 +455,146 @@ export default function GamesBoardX() {
   const selectedSport = sports.find((s) => s._id === selectedSportId);
   const filteredLeagues = leagues.filter((l) => l.name === selectedSport?.name);
 
-  function formatMatchTime(iso: string) {
-    return new Date(iso).toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }); // e.g. "13:00"
+  function addSelectionToSlip(match: Match, choice: Choice, odds: number) {
+    // Example condition: not bettable if finished or odds <= 1
+    const notBettable =
+      match.status === "ongoing" ||
+      match.status === "finished" ||
+      !odds ||
+      odds <= 1;
+
+    if (notBettable) {
+      setBetSlip((prev) => ({
+        ...prev,
+        isOpen: true,
+        isAvailable: false,
+        errorMessage: "This match is not available for betting",
+        items: [],
+        stakePerBet: 0,
+      }));
+
+      // auto-hide after 5–6 seconds
+      setTimeout(() => {
+        clearSlip();
+      }, 5500);
+
+      return;
+    }
+
+    // normal add logic
+    setBetSlip((prev) => {
+      const existingIndex = prev.items.findIndex(
+        (i) => i.matchId === match._id,
+      );
+
+      const newItem: BetSlipItem = {
+        matchId: match._id,
+        match,
+        choice,
+        odds,
+      };
+
+      let newItems: BetSlipItem[];
+      if (existingIndex >= 0) {
+        newItems = [...prev.items];
+        newItems[existingIndex] = newItem;
+      } else {
+        newItems = [...prev.items, newItem];
+      }
+
+      return {
+        ...prev,
+        items: newItems,
+        isOpen: true,
+        isAvailable: true,
+        errorMessage: undefined,
+      };
+    });
   }
 
-  function formatMatchDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    }); // e.g. "08 Mar"
+  function updateSlipChoice(matchId: string, choice: Choice) {
+    setBetSlip((prev) => {
+      const item = prev.items.find((i) => i.matchId === matchId);
+      if (!item) return prev;
+
+      const newOdds =
+        choice === "1"
+          ? item.match.odds.home
+          : choice === "2"
+            ? item.match.odds.away
+            : item.match.odds.draw;
+
+      return {
+        ...prev,
+        items: prev.items.map((i) =>
+          i.matchId === matchId ? { ...i, choice, odds: newOdds } : i,
+        ),
+      };
+    });
+  }
+
+  async function handlePlaceBets() {
+    if (betSlip.items.length === 0 || betSlip.stakePerBet <= 0) {
+      toast.warn("Add selections and stake first");
+      return;
+    }
+
+    const stored = localStorage.getItem("user");
+    if (!stored) {
+      toast.error("You must be logged in to place bets");
+      return;
+    }
+
+    let parsed: { token?: string; role?: string };
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      toast.error("Invalid session, please log in again");
+      return;
+    }
+
+    const token = parsed.token;
+    if (!token) {
+      toast.error("No auth token found, please log in again");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5000/bet/place-from-slip", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          items: betSlip.items.map((i) => ({
+            matchId: i.matchId,
+            choice: i.choice,
+            odds: i.odds,
+          })),
+          stakePerBet: betSlip.stakePerBet,
+        }),
+      });
+
+      const body = await res.json();
+
+      if (!res.ok) {
+        toast.error(body.message || "Failed to place bets");
+        return;
+      }
+
+      toast.success("Bets placed successfully");
+      clearSlip();
+      await refreshUserProfile();
+    } catch (err) {
+      console.error("Error placing bets:", err);
+      toast.error("Error placing bets");
+    }
+  }
+
+  function handleViewOtherMatches(league: League) {
+    setExpandedLeague(league);
+    setExpandedCategory(selectedCategory); // or "all" if you prefer
   }
 
   return (
@@ -416,9 +640,283 @@ export default function GamesBoardX() {
             key={league._id}
             league={league}
             category={selectedCategory}
+            onSelectOdds={addSelectionToSlip}
+            onViewMore={handleViewOtherMatches}
           />
         ))}
       </div>
+
+      {betSlip.isOpen && !betSlip.isAvailable && (
+        <div className="fixed bottom-5 right-6 w-full sm:w-96 z-50 pointer-events-none">
+          <div className="bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-t-2xl sm:rounded-l-2xl shadow-md text-center">
+            {betSlip.errorMessage ?? "Selection not available for betting"}
+          </div>
+        </div>
+      )}
+
+      {/* Bet Slip Panel */}
+      {betSlip.isOpen && (
+        <div
+          className={`fixed bottom-5 right-6 w-full sm:w-96 bg-white rounded-t-2xl sm:rounded-l-2xl shadow-lg p-4 z-80 ${
+            betSlip.isAvailable ? "" : "hidden pointer-events-none"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm text-gray-500">
+              YOUR BET SLIP
+            </h3>
+            <button
+              type="button"
+              className="text-xs text-gray-500 hover:text-red-500 cursor-pointer"
+              onClick={clearSlip}
+            >
+              Clear all
+            </button>
+          </div>
+
+          {betSlip.items.length === 0 ? (
+            <p className="text-xs text-gray-500">
+              No selections yet. Tap odds to add a match.
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              {betSlip.items.map((item) => {
+                const currentChoiceLabel =
+                  item.choice === "1"
+                    ? item.match.teamA.name
+                    : item.choice === "2"
+                      ? item.match.teamB.name
+                      : "Draw";
+                return (
+                  <div
+                    key={item.matchId}
+                    className="rounded-md p-2 flex flex-col gap-1"
+                  >
+                    <div>
+                      <button
+                      title="Remove Bet"
+                        type="button"
+                        className="flex w-full justify-end text-[10px] text-gray-400 hover:text-red-500 cursor-pointer"
+                        onClick={() => removeSelectionFromSlip(item.matchId)}
+                      >
+                        <Trash2 width={18} />
+                      </button>
+                      <div className="grid justify-center">
+                        <span className="font-bold text-[.7rem] bg-blue-100 text-blue-500 py-1 px-2 rounded-md">
+                          {(() => {
+                            const d = new Date(item.match.startTime);
+
+                            const month = d
+                              .toLocaleString("en-GB", { month: "short" })
+                              .toUpperCase(); // "MAR"
+                            const day = d.toLocaleString("en-GB", {
+                              day: "2-digit",
+                            }); // "19"
+
+                            const oneJan = new Date(d.getFullYear(), 0, 1);
+                            const dayOfYear =
+                              (d.getTime() - oneJan.getTime()) /
+                                (1000 * 60 * 60 * 24) +
+                              1;
+                            const week = Math.ceil(dayOfYear / 7); // WEEK 1..52
+
+                            return `${month} ${day} / WEEK ${week}`;
+                          })()}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 items-center justify-between px-3">
+                        <div className="grid justify-items-center gap-2">
+                          <img
+                            className="w-10 h-10"
+                            src={item.match.teamA.logo}
+                            alt={item.match.teamA.name}
+                          />
+                          <span className="text-xs text-center font-semibold">
+                            {item.match.teamA.code}
+                          </span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-lg font-bold">
+                            {new Date(item.match.startTime).toLocaleTimeString(
+                              "en-GB",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              },
+                            )}
+                          </span>
+                        </div>
+                        <div className="grid justify-items-center gap-2">
+                          <img
+                            className="w-10 h-10"
+                            src={item.match.teamB.logo}
+                            alt={item.match.teamB.name}
+                          />
+                          <span className="text-xs text-center font-semibold">
+                            {item.match.teamB.code}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="py-5 grid gap-2">
+                        <span className="text-[.7rem] text-blue-800 font-medium">
+                          Match Result
+                        </span>
+                        <div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSlipChoice(item.matchId, "1")
+                              }
+                              className={`grid grid-cols-2 items-center  p-2 rounded-md text-[11px] border cursor-pointer
+            ${
+              item.choice === "1"
+                ? "bg-blue-100 font-bold text-blue-500 border-blue-500"
+                : "bg-gray-100 text-gray-700 border-gray-200"
+            }`}
+                            >
+                              <span
+                                className={`${item.choice === "1" ? "" : "font-bold text-gray-400"}`}
+                              >
+                                Home
+                              </span>
+                              <span
+                                className={`${item.choice === "1" ? "" : "font-bold text-gray-800"}`}
+                              >
+                                {item.match.odds.home.toFixed(2)}
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSlipChoice(item.matchId, "X")
+                              }
+                              className={`grid grid-cols-2 items-center  px-2 py-1 rounded-md text-[11px] border cursor-pointer
+            ${
+              item.choice === "X"
+                ? "bg-blue-100 font-bold text-blue-500 border-blue-500"
+                : "bg-gray-100 text-gray-700 border-gray-200"
+            }`}
+                            >
+                              <span
+                                className={`${item.choice === "X" ? "" : "font-bold text-gray-400"}`}
+                              >
+                                Draw
+                              </span>
+                              <span
+                                className={`${item.choice === "X" ? "" : "font-bold text-gray-800"}`}
+                              >
+                                {item.match.odds.draw.toFixed(2)}
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSlipChoice(item.matchId, "2")
+                              }
+                              className={`grid grid-cols-2 items-center  px-2 py-1 rounded-md text-[11px] border cursor-pointer
+            ${
+              item.choice === "2"
+                ? "bg-blue-100 font-bold text-blue-500 border-blue-500"
+                : "bg-gray-100 text-gray-700 border-gray-200"
+            }`}
+                            >
+                              <span
+                                className={`${item.choice === "2" ? "" : "font-bold text-gray-400"}`}
+                              >
+                                Away
+                              </span>
+                              <span
+                                className={`${item.choice === "2" ? "" : "font-bold text-gray-800"}`}
+                              >
+                                {item.match.odds.away.toFixed(2)}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Stake + summary */}
+          {betSlip.items.length > 0 && (
+            <>
+              <div className="grid grid-cols-2 gap-3 items-center">
+                <div className="space-y-1">
+                  <input
+                    title="Bet Slip"
+                    type="number"
+                    min={0}
+                    className="w-full font-semibold border-2 border-gray-300 rounded-md px-2 py-1 text-sm text-blue-500"
+                    value={betSlip.stakePerBet || ""}
+                    onChange={(e) =>
+                      setBetSlip((prev) => ({
+                        ...prev,
+                        stakePerBet: Number(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                  <label className="block text-[.7rem] text-gray-600">
+                    Stake
+                  </label>
+                </div>
+                <div className="grid gap-1">
+                  <span className="font-semibold w-full border-2 border-gray-300 rounded-md px-2 py-1 text-sm text-green-500">
+                    {betSlip.items
+                      .reduce(
+                        (acc, item) =>
+                          acc + (betSlip.stakePerBet || 0) * item.odds,
+                        0,
+                      )
+                      .toLocaleString("en-NG", { maximumFractionDigits: 0 })}
+                  </span>
+                  <label className="block text-[.7rem] text-gray-600">
+                    Potential Winnings
+                  </label>
+                </div>
+              </div>
+
+              {/* <div className="flex justify-between items-center text-xs mt-2">
+                <span>Total stake</span>
+                <span className="font-semibold">
+                  {betSlip.items.length * (betSlip.stakePerBet || 0)}
+                </span>
+              </div> */}
+
+              <button
+                type="button"
+                disabled={
+                  !betSlip.isAvailable ||
+                  betSlip.items.length === 0 ||
+                  betSlip.stakePerBet <= 0
+                }
+                onClick={handlePlaceBets}
+                className="mt-3 w-full py-2 rounded-md text-sm font-semibold  cursor-pointer
+    bg-blue-500 text-white disabled:bg-gray-300 disabled:text-gray-500"
+              >
+                PLACE {betSlip.items.length} BET
+                {betSlip.items.length > 1 ? "S" : ""}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <LeagueMatchesModal
+        open={!!expandedLeague}
+        league={expandedLeague}
+        initialCategory={expandedCategory}
+        onClose={() => setExpandedLeague(null)}
+        onSelectOdds={addSelectionToSlip}
+      />
     </section>
   );
 

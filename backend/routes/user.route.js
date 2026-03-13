@@ -8,6 +8,8 @@ const adminMiddleware = require('../utils/middlewares/admin.middleware')
 
 router.post('/register', userValidation, userController.register);
 router.post('/login', userController.login);
+router.post("/logout", userController.logout);
+
 
 router.post('/verify-auth', authMiddleware, userController.profile);
 
@@ -19,6 +21,8 @@ router.post("/follow/:userId", authMiddleware, userController.follow);
 // POST /user/unfollow/:userId
 router.post("/unfollow/:userId", authMiddleware, userController.unfollow);
 
+// Follow Sport or Club
+router.post('/favorites/toggle', authMiddleware, userController.toggleFavorite);
 
 //Admin Only Routes
 router.get('/', adminMiddleware, userController.findMany);

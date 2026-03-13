@@ -110,6 +110,15 @@ const login = async (req, res) => {
 
     if (verify) {
       const token = sign({ id: user._id, role: user.role, email: user.email });
+
+      // NEW: set httpOnly cookie
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       console.log("role: user.role", user.role);
 
       return res.json({
@@ -127,6 +136,16 @@ const login = async (req, res) => {
       message: "Internal Server Error, please retry later !!!",
     });
   }
+};
+
+const logout = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+
+  return res.status(200).json({ message: "Logged out successfully" });
 };
 
 const profile = async (req, res) => {
@@ -169,6 +188,44 @@ const unfollow = async (req, res) => {
   return res.status(200).json({ message: result.message });
 };
 
+const toggleFavorite = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { action, type, id } = req.body;
+
+    if (!["sport", "club"].includes(type)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid type. Use 'sport' or 'club'" });
+    }
+
+    let result;
+    if (action === "follow") {
+      result = await userService.followFavorite(userId, {
+        sportId: type === "sport" ? id : null,
+        clubId: type === "club" ? id : null,
+      });
+    } else if (action === "unfollow") {
+      result = await userService.unfollowFavorite(userId, {
+        sportId: type === "sport" ? id : null,
+        clubId: type === "club" ? id : null,
+      });
+    }
+
+    // Now correctly handles the "Already followed" or "Not following" errors
+    if (result.error) {
+      return res.status(400).json({ message: result.message });
+    }
+
+    return res.status(200).json({
+      message: result.message,
+      data: result.data,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   register,
   findMany,
@@ -176,7 +233,9 @@ module.exports = {
   update,
   remove,
   login,
+  logout,
   profile,
   follow,
   unfollow,
+  toggleFavorite,
 };

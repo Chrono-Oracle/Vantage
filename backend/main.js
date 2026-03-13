@@ -1,7 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("node:path")
+const path = require("node:path");
+const cookieParser = require("cookie-parser");
 
 const { connect } = require("./configs/database.config");
 const sportRoute = require("./routes/sport.route");
@@ -20,8 +21,14 @@ const run = async () => {
 
     await connect();
 
-    app.use(cors());
+    app.use(
+      cors({
+        origin: "http://localhost:3000", // your Next.js app
+        credentials: true,
+      }),
+    );
     app.use(express.json());
+    app.use(cookieParser());
     app.use(express.urlencoded({ extended: false }));
     app.use(express.static(path.join(__dirname, "public")));
 

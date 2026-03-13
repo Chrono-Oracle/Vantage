@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/utils/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useSidebar } from "@/components/layout/sidebar-context";
+import { useSidebar } from "@/utils/contexts/sidebar-context";
 import HeroCarousel from "@/components/HeroCarousel";
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";

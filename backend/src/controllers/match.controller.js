@@ -31,8 +31,8 @@ const findMany = async (req, res) => {
 
     const matches = await Match.find(filter)
       .populate("league", "name logo")
-      .populate("teamA", "name logo")
-      .populate("teamB", "name logo")
+      .populate("teamA", "name logo shortName code")
+      .populate("teamB", "name logo shortName code")
       .sort({ startTime: 1 });
 
     return res.status(200).json({

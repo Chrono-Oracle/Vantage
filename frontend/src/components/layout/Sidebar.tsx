@@ -14,19 +14,22 @@ import {
   Star,
   Check,
   BadgePlus,
+  CircleMinus,
+  ChevronDown,
 } from "lucide-react";
-import { useSidebar } from "./sidebar-context";
+import { useSidebar } from "@/utils/contexts/sidebar-context";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { imgUrl } from "@/utils/libs/cdn";
+import { LogoutButton } from "../LogoutButton";
 
 const navItems = [
   { icon: Home, label: "Dashboard", href: "/dashboard" },
   { icon: Trophy, label: "Live Sports", href: "/dashboard/liveSports" },
   { icon: History, label: "Bet History", href: "/dashboard/betHistory" },
   { icon: LayoutList, label: "Categories", href: "/dashboard/categories" },
-  { icon: User, label: "Profile", href: "/dashboard/profile" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: User, label: "Profile", href: "/dashboard/profile" }
+  // { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
 type User = {
@@ -45,18 +48,21 @@ type User = {
   followingCount: number;
 
   // Favorites (populated)
-  favoriteSport?: {
-    _id: string;
-    name: string;
-    image?: string;
-  } | null;
-
-  favoriteClub?: {
+  favoriteSports?: {
     _id: string;
     name: string;
     logo?: string;
-  } | null;
+  }[];
+
+  favoriteClubs?: {
+    _id: string;
+    name: string;
+    logo?: string;
+  }[];
 };
+
+// Sidebar grouping: favorite clubs by their sport
+type ClubWithSport = any & { sport?: any };
 
 export function Sidebar() {
   const router = useRouter();
@@ -66,6 +72,51 @@ export function Sidebar() {
   const { isExpanded, toggleSidebar } = useSidebar();
   const pathname = usePathname();
 
+  //Favorite Sports and Club
+  const [availableSports, setAvailableSports] = useState<any[]>([]);
+  const [availableClubs, setAvailableClubs] = useState<any[]>([]);
+  const [showSportDropdown, setShowSportDropdown] = useState(false);
+  const [showClubSideMenu, setShowClubSideMenu] = useState(false);
+  const [expandedSports, setExpandedSports] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [selectedClubIds, setSelectedClubIds] = useState<string[]>([]);
+  const [expandedClubGroups, setExpandedClubGroups] = useState<
+    Record<string, boolean>
+  >({});
+
+  const sportCountLabel = `${user?.favoriteSports?.length || 0}/3`;
+  const clubsBySport =
+    user?.favoriteSports?.map((sport: any) => ({
+      sport,
+      clubs: availableClubs.filter((club) => club.sport === sport._id),
+    })) || [];
+
+  const clubsBySportForSidebar =
+    (user?.favoriteSports || []).map((sport) => ({
+      sport,
+      clubs:
+        (user?.favoriteClubs as ClubWithSport[] | undefined)?.filter(
+          (club) =>
+            club.sport?.toString?.() === sport._id.toString?.() ||
+            club.sport === sport._id,
+        ) || [],
+    })) || [];
+  // Helper: already followed clubs per sport (from user.favoriteClubs)
+  // Build a map: sportId -> count of favorite clubs for that sport
+  const favoriteClubCountsBySport: Record<string, number> = {};
+  user?.favoriteClubs?.forEach((club: any) => {
+    const sportId = club.sport?.toString?.() ?? club.sport; // depends on populate
+    if (!sportId) return;
+    favoriteClubCountsBySport[sportId] =
+      (favoriteClubCountsBySport[sportId] || 0) + 1;
+  });
+  const followedClubIds = new Set(
+    (user?.favoriteClubs || []).map((c: any) => c._id.toString()),
+  );
+  const hasFavoriteSports = (user?.favoriteSports?.length || 0) > 0;
+
+  //Fetch User Profile
   useEffect(() => {
     const fetchUser = async () => {
       const stored = localStorage.getItem("user");
@@ -101,6 +152,7 @@ export function Sidebar() {
 
         if (!body.error) {
           setUser(body.data);
+          console.log("favoriteSports from backend:", body.data.favoriteSports);
         }
       } catch (err) {
         console.error("Error fetching user:", err);
@@ -111,6 +163,105 @@ export function Sidebar() {
 
     fetchUser();
   }, []);
+
+  //Fetch Available Sports and Clubs
+  useEffect(() => {
+    const fetchChoices = async () => {
+      try {
+        const [sportsRes, clubsRes] = await Promise.all([
+          fetch("http://localhost:5000/sport"),
+          fetch("http://localhost:5000/team"),
+        ]);
+
+        if (!sportsRes.ok || !clubsRes.ok) {
+          console.log(
+            "Failed to fetch choices",
+            sportsRes.status,
+            clubsRes.status,
+          );
+          return;
+        }
+
+        // console.log("Raw Sports Data:", sportsRes);
+        // console.log("Raw Clubs Data:", clubsRes);
+
+        const sportsData = await sportsRes.json();
+        const clubsData = await clubsRes.json();
+
+        // console.log("Raw Sports Data:", sportsData);
+
+        setAvailableSports(
+          Array.isArray(sportsData) ? sportsData : sportsData.data || [],
+        );
+        setAvailableClubs(clubsData.data || []);
+      } catch (err) {
+        console.error("Error fetching choices:", err);
+      }
+    };
+
+    fetchChoices();
+  }, []);
+
+  const handleToggleFavorite = async (
+    type: "sport" | "club",
+    id: string,
+    action: "follow" | "unfollow",
+  ) => {
+    const stored = localStorage.getItem("user");
+    if (!stored) return;
+    const { token } = JSON.parse(stored);
+
+    try {
+      // 1. Perform the Toggle
+      const res = await fetch("http://localhost:5000/user/favorites/toggle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action, type, id }),
+      });
+
+      const body = await res.json();
+
+      if (res.ok && !body.error) {
+        // 2. RE-FETCH FRESH USER DATA
+        // This ensures the sidebar always has populated names and images
+        const userRes = await fetch("http://localhost:5000/user/me", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const userBody = await userRes.json();
+        if (!userBody.error) {
+          setUser(userBody.data); // Update state with perfect data
+        }
+
+        if (
+          type === "sport" &&
+          action === "unfollow" &&
+          (userBody.data.favoriteSports?.length || 0) === 0
+        ) {
+          setShowClubSideMenu(false); // only close side menu, not sidebar
+        }
+
+        setShowSportDropdown(false);
+      } else {
+        // This handles the "Already followed" or "Not following" 400 errors
+        console.error("Toggle failed:", body.message);
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+    }
+  };
+
+  //Default Profile Pic
+  const getInitials = (name: string) => {
+    if (!name) return "??";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  };
 
   return (
     <>
@@ -141,7 +292,7 @@ export function Sidebar() {
               ? "100vh"
               : isExpanded
                 ? "100vh"
-                : "50vh",
+                : "45vh",
           top:
             typeof window !== "undefined" && window.innerWidth < 768
               ? "0%"
@@ -187,13 +338,17 @@ export function Sidebar() {
             <AnimatePresence>
               {isExpanded && (
                 <motion.div className="grid justify-items-center">
-                  <div className=" mb-2 rounded-full overflow-hidden">
-                    {user?.avatar && (
+                  <div className=" mb-2 rounded-full w-15 h-15 overflow-hidden bg-linear-to-br from-blue-600 to-indigo-700 flex items-center justify-center shrink-0 text-white font-bold">
+                    {user?.avatar ? (
                       <img
-                        className="object-cover w-15 h-15"
                         src={imgUrl(user.avatar)}
-                        alt="User"
+                        alt={user.fullName}
+                        className="w-full h-full object-cover"
                       />
+                    ) : (
+                      <span className="text-sm tracking-tighter">
+                        {getInitials(user?.fullName || "User")}
+                      </span>
                     )}
                   </div>
                   <div className="grid justify-items-center ">
@@ -282,34 +437,410 @@ export function Sidebar() {
               >
                 <div className="p-4">
                   {/* Favorite Sport */}
-                  <div className="mt-2">
-                    <div className="flex justify-between items-center">
+                  <div className="mt-2 relative">
+                    <div className="flex justify-between relative items-center">
                       <h5 className="text-[.7rem] font-semibold text-gray-400">
-                        FAVORITE SPORT
+                        FAVORITE SPORT ({sportCountLabel})
                       </h5>
-                      <button title="add">
-                        <BadgePlus width={18} />
+                      <button
+                        title="add"
+                        onClick={() => setShowSportDropdown(!showSportDropdown)}
+                        className="cursor-pointer hover:text-green-500 transition ease-in-out duration-100"
+                      >
+                        <BadgePlus width={15} />
                       </button>
                     </div>
-                    <div className="flex gap-3 items-center py-3">
-                      <div className="w-5 h-5 rounded-full bg-red-800" />
-                      <span>Basketball</span>
-                    </div>
+
+                    {/* Dropdown Menu for Sports */}
+                    {showSportDropdown && (
+                      <ul className="absolute z-20 w-50 top-8 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md shadow-md rounded-md overflow-hidden ">
+                        {availableSports.map((s) => (
+                          <li
+                            key={s._id}
+                            onClick={() =>
+                              handleToggleFavorite("sport", s._id, "follow")
+                            }
+                            className="flex items-center p-3 gap-2 cursor-pointer hover:bg-blue-400 hover:text-white transition duration-300 ease-in-out"
+                          >
+                            <img
+                              src={imgUrl(s.logo)}
+                              alt={s.name}
+                              className="w-5 h-5"
+                            />
+                            <span>{s.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* List of followed sports with Remove button */}
+                    {user?.favoriteSports?.map((sport) => (
+                      <div
+                        key={sport._id}
+                        className="flex justify-between items-center py-2"
+                      >
+                        <div className="flex gap-3 items-center">
+                          <img
+                            src={imgUrl(sport.logo)}
+                            alt={sport?.name}
+                            className="w-5 h-5"
+                          />
+                          <span className="font-bold text-sm">
+                            {sport?.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          title="remove"
+                          onClick={() =>
+                            handleToggleFavorite("sport", sport._id, "unfollow")
+                          }
+                          className="text-red-500"
+                        >
+                          <CircleMinus width={15} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Favorite Club */}
-                  <div className="my-5">
+                  <div
+                    className={`my-5 ${
+                      hasFavoriteSports ? "" : "opacity-40 pointer-events-none"
+                    }`}
+                  >
                     <div className="flex justify-between items-center">
                       <h5 className="text-[.7rem] font-semibold text-gray-400">
                         FAVORITE CLUB
                       </h5>
                       <button title="add">
-                        <BadgePlus width={18} />
+                        <BadgePlus
+                          width={15}
+                          className="cursor-pointer hover:text-green-500 transition ease-in-out duration-100"
+                          onClick={() => {
+                            setShowClubSideMenu(true);
+                            setExpandedSports({}); // reset expansion
+                            setSelectedClubIds([]); // reset selection
+                          }}
+                        />
                       </button>
                     </div>
-                    <div className="flex gap-3 items-center py-3">
-                      <div className="w-5 h-5 rounded-full bg-blue-800" />
-                      <span>Manchester United</span>
+                    <div className="w-full flex justify-between items-center pb-3">
+                      {/* Grouped favorite clubs by sport */}
+                      <div className="w-full mt-2 space-y-3">
+                        {clubsBySportForSidebar.map(({ sport, clubs }) => {
+                          if (clubs.length === 0) return null; // skip sports with no clubs
+
+                          const isOpen = expandedClubGroups[sport._id] ?? true; // default open
+
+                          return (
+                            <div
+                              key={sport._id}
+                              className="border border-gray-200 rounded-md"
+                            >
+                              {/* Sport header row */}
+                              <button
+                                type="button"
+                                className="w-full flex items-center justify-between px-2 py-1 text-xs font-semibold"
+                                onClick={() =>
+                                  setExpandedClubGroups((prev) => ({
+                                    ...prev,
+                                    [sport._id]: !isOpen,
+                                  }))
+                                }
+                              >
+                                <div className="flex items-center gap-2">
+                                  {sport.logo && (
+                                    <img
+                                      src={imgUrl(sport.logo)}
+                                      alt={sport.name}
+                                      className="w-4 h-4"
+                                    />
+                                  )}
+                                  <span>{sport.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                  <span>
+                                    {clubs.length} club
+                                    {clubs.length === 1 ? "" : "s"}
+                                  </span>
+                                  <ChevronDown
+                                    size={12}
+                                    className={
+                                      isOpen
+                                        ? "rotate-180 transition"
+                                        : "transition"
+                                    }
+                                  />
+                                </div>
+                              </button>
+
+                              {/* Clubs for this sport */}
+                              {isOpen && (
+                                <div className="border-t border-gray-100 py-1 space-y-1">
+                                  {clubs.map((club: any) => (
+                                    <div
+                                      key={club._id}
+                                      className="px-2 flex justify-between items-center text-xs"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <img
+                                          src={club.logo}
+                                          alt={club.name}
+                                          className="w-4 h-4"
+                                        />
+                                        <span>{club.name}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        title="remove"
+                                        onClick={() =>
+                                          handleToggleFavorite(
+                                            "club",
+                                            club._id,
+                                            "unfollow",
+                                          )
+                                        }
+                                        className="text-red-500"
+                                      >
+                                        <CircleMinus width={12} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Fallback if absolutely no clubs across any sport */}
+                        {(!user?.favoriteClubs ||
+                          user.favoriteClubs.length === 0) && (
+                          <p className="text-xs text-gray-400">
+                            No favorite clubs yet
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Club selection side menu */}
+                      <AnimatePresence>
+                        {showClubSideMenu && (
+                          <motion.div
+                            initial={{ x: "100%", opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: "100%", opacity: 0 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 260,
+                              damping: 24,
+                            }}
+                            className="fixed inset-y-0 right-0 z-100 w-80 bg-white/30 backdrop-blur-md shadow-xl p-4 flex flex-col"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-sm font-semibold">
+                                Select Favorite Clubs
+                              </h3>
+                              <button
+                                className="text-xs text-gray-500"
+                                onClick={() => setShowClubSideMenu(false)}
+                              >
+                                Close
+                              </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto space-y-3">
+                              {clubsBySport.map(({ sport, clubs }) => {
+                                const isExpanded =
+                                  expandedSports[sport._id] ?? true;
+
+                                const selectedCountForSport =
+                                  selectedClubIds.filter((id) =>
+                                    clubs.some((c: any) => c._id === id),
+                                  ).length;
+
+                                const alreadyFollowedForSport =
+                                  favoriteClubCountsBySport[sport._id] || 0;
+
+                                const maxPerSport = 5;
+                                const totalForSport =
+                                  alreadyFollowedForSport +
+                                  selectedCountForSport;
+                                const remainingForSport = Math.max(
+                                  maxPerSport - totalForSport,
+                                  0,
+                                );
+
+                                return (
+                                  <div
+                                    key={sport._id}
+                                    className="border border-gray-200 rounded-md"
+                                  >
+                                    {/* Sport header row */}
+                                    <button
+                                      type="button"
+                                      className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium"
+                                      onClick={() =>
+                                        setExpandedSports((prev) => ({
+                                          ...prev,
+                                          [sport._id]: !isExpanded,
+                                        }))
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {/* sport logo optional */}
+                                        {/* <img src={imgUrl(sport.logo)} className="w-4 h-4" /> */}
+                                        <span>{sport.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <span>
+                                          {selectedCountForSport} selected ·{" "}
+                                          {remainingForSport} left
+                                        </span>
+                                        <ChevronDown
+                                          size={14}
+                                          className={
+                                            isExpanded
+                                              ? "rotate-180 transition"
+                                              : "transition"
+                                          }
+                                        />
+                                      </div>
+                                    </button>
+
+                                    {/* Clubs list for this sport */}
+                                    {isExpanded && clubs.length > 0 && (
+                                      <div className="border-t border-gray-200">
+                                        {clubs.map((club: any) => {
+                                          const clubId = club._id.toString();
+                                          const isSelected =
+                                            selectedClubIds.includes(club._id);
+                                          const isAlreadyFollowed =
+                                            followedClubIds.has(clubId);
+                                          const sportHasSpace =
+                                            remainingForSport > 0 || isSelected;
+
+                                          const disabled =
+                                            isAlreadyFollowed || !sportHasSpace;
+
+                                          return (
+                                            <button
+                                              key={club._id}
+                                              type="button"
+                                              disabled={disabled}
+                                              onClick={() => {
+                                                if (disabled && !isSelected)
+                                                  return; // extra safety
+
+                                                setSelectedClubIds(
+                                                  (prev) =>
+                                                    isSelected
+                                                      ? prev.filter(
+                                                          (id) => id !== clubId,
+                                                        ) // deselect
+                                                      : [...prev, clubId], // select
+                                                );
+                                              }}
+                                              className={`w-full flex items-center justify-between px-3 py-2 text-xs  
+        ${isSelected ? "bg-blue-50" : ""}
+        ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-blue-500 hover:text-white transition ease-in-out duration-200  cursor-pointer"}
+        ${isAlreadyFollowed ? "hover:bg-none " : " "}`}
+                                            >
+                                              <div className="flex items-center gap-2 ">
+                                                <img
+                                                  src={club.logo}
+                                                  alt={club.name}
+                                                  className="w-4 h-4"
+                                                />
+                                                <span>{club.name}</span>
+                                              </div>
+
+                                              {isAlreadyFollowed &&
+                                                !isSelected && (
+                                                  <span className="text-[10px] text-white bg-green-500 p-1 w-4 h-4 flex items-center justify-center rounded-full">
+                                                    <Check
+                                                      width={12}
+                                                      strokeWidth={5}
+                                                    />
+                                                  </span>
+                                                )}
+                                              {isSelected &&
+                                                !isAlreadyFollowed && (
+                                                  <Check
+                                                    size={14}
+                                                    className="text-green-500 "
+                                                  />
+                                                )}
+                                            </button>
+                                          );
+                                        })}
+                                        {clubs.length === 0 && (
+                                          <div className="px-3 py-2 text-xs text-gray-400">
+                                            No clubs for this sport yet.
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Bottom Add button */}
+                            <div className="pt-3  mt-3">
+                              <button
+                                type="button"
+                                disabled={selectedClubIds.length === 0}
+                                onClick={async () => {
+                                  // Call backend for each selected club or send them in bulk
+                                  const stored = localStorage.getItem("user");
+                                  if (!stored) return;
+                                  const { token } = JSON.parse(stored);
+
+                                  // Simple version: one request per club
+                                  await Promise.all(
+                                    selectedClubIds.map((clubId) =>
+                                      fetch(
+                                        "http://localhost:5000/user/favorites/toggle",
+                                        {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                            Authorization: `Bearer ${token}`,
+                                          },
+                                          body: JSON.stringify({
+                                            action: "follow",
+                                            type: "club",
+                                            id: clubId,
+                                          }),
+                                        },
+                                      ),
+                                    ),
+                                  );
+
+                                  // Re-fetch user to update favoriteClubs
+                                  const userRes = await fetch(
+                                    "http://localhost:5000/user/me",
+                                    {
+                                      method: "GET",
+                                      headers: {
+                                        Authorization: `Bearer ${token}`,
+                                      },
+                                    },
+                                  );
+                                  const userBody = await userRes.json();
+                                  if (!userBody.error) setUser(userBody.data);
+
+                                  setShowClubSideMenu(false);
+                                }}
+                                className="w-full py-2 text-sm font-semibold rounded-md bg-blue-500 text-white disabled:bg-gray-300"
+                              >
+                                Add {selectedClubIds.length} club
+                                {selectedClubIds.length === 1 ? "" : "s"}
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
                 </div>
@@ -317,6 +848,8 @@ export function Sidebar() {
             )}
           </AnimatePresence>
         </div>
+
+        {isExpanded && <div className="p-4"><LogoutButton /></div>}
       </motion.aside>
     </>
   );

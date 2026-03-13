@@ -85,7 +85,7 @@ export default function LoginPage() {
       setLoginData(DEFAULT_DATA);
 
       if (role === "admin") {
-        router.push("/admin/dashboard");
+        router.push("/admin");
       } else {
         router.push("/dashboard");
       }

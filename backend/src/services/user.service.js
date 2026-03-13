@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const BaseService = require("./base.service");
 const Follow = require("../models/Follow");
+const Sport = require("../models/Sport");
+const Team = require("../models/Team");
 const { comparePassword } = require("../../utils/lib/bcrypt.lib");
 const { sign } = require("../../utils/lib/jwt.lib");
 
@@ -114,7 +116,11 @@ class UserService extends BaseService {
 
   async findById(id) {
     try {
-      const user = await this.model.findById(id).select("-password"); // Hide password
+      const user = await this.model
+        .findById(id)
+        .select("-password")
+        .populate("favoriteSports")
+        .populate("favoriteClubs"); // Hide password
       if (!user) return { error: true, message: "User not found" };
 
       // Calculate counts on the fly
@@ -189,6 +195,143 @@ class UserService extends BaseService {
         error: true,
         message: error.message || "Failed to unfollow user",
       };
+    }
+  }
+
+  async followFavorite(userId, { sportId, clubId }) {
+    try {
+      const user = await User.findById(userId).populate("favoriteClubs"); // Populate clubs to check their sport field
+      const type = sportId ? "favoriteSports" : "favoriteClubs";
+      const targetId = sportId || clubId;
+
+      // 1. Check if already followed
+      const isAlreadyFollowed = user[type].some((fav) => {
+        // If populated, use ._id; if not populated, fav is the ID itself
+        const favId = fav._id ? fav._id.toString() : fav.toString();
+        return favId === targetId.toString();
+      });
+
+      if (isAlreadyFollowed) {
+        return {
+          error: true,
+          message: `Already following this ${sportId ? "sport" : "club"}.`,
+        };
+      }
+
+      // 2. Sport-specific limit (Max 3)
+      if (sportId) {
+        // NEW: Check if Sport actually exists in DB
+        // Ensure path is correct
+        const sportExists = await Sport.findById(sportId);
+
+        if (!sportExists) {
+          return { error: true, message: "Sport does not exist." };
+        }
+
+        // Max 3 sports limit
+        if (user.favoriteSports.length >= 3) {
+          return {
+            error: true,
+            message: "You can only follow up to 3 sports.",
+          };
+        }
+      }
+
+      // 3. Club-specific logic [NEW]
+      if (clubId) {
+        // Ensure Team model is imported
+        const club = await Team.findById(clubId);
+
+        if (!club) return { error: true, message: "Club not found." };
+
+        // Check if user follows the sport this club belongs to
+        const followsParentSport = user.favoriteSports.some(
+          (s) => s.toString() === club.sport.toString(),
+        );
+
+        if (!followsParentSport) {
+          return {
+            error: true,
+            message:
+              "You must follow the parent sport before following its clubs.",
+          };
+        }
+
+        // Count clubs already followed in THIS specific sport
+        const clubsInThisSport = user.favoriteClubs.filter(
+          (favClub) => favClub.sport.toString() === club.sport.toString(),
+        );
+
+        if (clubsInThisSport.length >= 5) {
+          return {
+            error: true,
+            message: "You can only follow up to 5 clubs per sport.",
+          };
+        }
+      }
+
+      // 4. Perform update and populate
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $addToSet: { [type]: targetId } },
+        { new: true },
+      ).populate("favoriteSports favoriteClubs");
+
+      return {
+        error: false,
+        message: "Followed successfully",
+        data: updatedUser,
+      };
+    } catch (error) {
+      return { error: true, message: error.message };
+    }
+  }
+
+  async unfollowFavorite(userId, { sportId, clubId }) {
+    try {
+      const type = sportId ? "favoriteSports" : "favoriteClubs";
+      const targetId = sportId || clubId;
+
+      // 1. Fetch user and check if they are actually following it
+      const user = await User.findById(userId);
+      if (!user[type].some((id) => id.toString() === targetId.toString())) {
+        return {
+          error: true,
+          message: `You are not following this ${sportId ? "sport" : "club"}.`,
+        };
+      }
+
+      let update = { $pull: { [type]: targetId } };
+
+      // 2. CASCADING LOGIC: If unfollowing a SPORT, also remove all CLUBS under that sport
+      if (sportId) {
+        // Find all clubs in the user's favorites that belong to this sport
+        const clubsToRemove = await Team.find({
+          _id: { $in: user.favoriteClubs },
+          sport: sportId,
+        }).select("_id");
+
+        if (clubsToRemove.length > 0) {
+          const clubIdsToRemove = clubsToRemove.map((c) => c._id);
+          // Add to the existing $pull command
+          update.$pull.favoriteClubs = { $in: clubIdsToRemove };
+        }
+      }
+
+      // 3. Perform removal and populate
+      const updatedUser = await User.findByIdAndUpdate(userId, update, {
+        new: true,
+      }).populate("favoriteSports favoriteClubs");
+
+      return {
+        error: false,
+        message: sportId
+          ? "Sport and associated clubs removed successfully"
+          : "Club removed successfully",
+        data: updatedUser,
+      };
+    } catch (error) {
+      return { error: true, message: error.message };
     }
   }
 
